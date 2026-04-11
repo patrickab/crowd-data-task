@@ -1,9 +1,11 @@
 [project]
-name = "template"
+name = "crowd-data-task"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
-    "something>=4.2.0"
+  "streamlit==1.56.0",
+  "polars==1.39.3",
+  "pytest==9.0.3"
 ]
 
 [build-system]
@@ -13,13 +15,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.ruff]
 target-version = "py312"
 respect-gitignore = true
-line-length = 135
+line-length = 100
 
 [tool.ruff.lint]
 select = [
@@ -41,6 +40,7 @@ ignore = [
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
+known-first-party = ["src"]
 section-order = ["standard-library", "third-party", "first-party", "local-folder"]
 
 # Enables Ruff formatter with default options (Black-compatible)

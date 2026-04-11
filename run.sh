@@ -1,2 +1,2 @@
 #!/bin/sh
-python -m run.something
+.venv/bin/streamlit run app.py
