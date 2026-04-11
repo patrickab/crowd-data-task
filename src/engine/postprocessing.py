@@ -44,7 +44,12 @@ def process_simulation_data(input_path: str | Path, output_path: str | Path) -> 
 
     pivot_df = pivot_df.select(ordered_cols)
 
-    # 7. Write to CSV
+    # 7. Cast to float
+    pivot_df = pivot_df.with_columns(
+        [pl.col(c).cast(pl.Float64) for c in ordered_cols if c != "timeStep"]
+    )
+
+    # 8. Write to CSV
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pivot_df.write_csv(output_path)
 

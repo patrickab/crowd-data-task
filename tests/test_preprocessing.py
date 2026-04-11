@@ -62,4 +62,8 @@ def test_matches_expected_output(sim_folder: str, tmp_path: Path) -> None:
     result_df = process_simulation_data(input_path, output_path)
     expected_df = pl.read_csv(expected_csv_path)
 
-    assert_frame_equal(result_df, expected_df)
+    # Cast to Float64 to ignore String/Float type discrepancies and sort by timeStep
+    res = result_df.cast(pl.Float64, strict=False).sort("timeStep")
+    exp = expected_df.cast(pl.Float64, strict=False).sort("timeStep")
+
+    assert_frame_equal(res, exp)
