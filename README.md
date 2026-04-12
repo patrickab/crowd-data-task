@@ -14,8 +14,6 @@ Tool to parse and transform simulation data from `postvis_time.txt` to a wide-fo
 
 ## Getting Started
 
-This project is configured via `pyproject.toml`, making it compatible with all standard Python package managers.
-
 ### 1. Setup Environment
 **Using uv:**
 ```bash
@@ -30,9 +28,15 @@ pip install .
 ```
 
 ### 2. Execution
+
 **Run tests:**
 ```bash
 pytest -v
+```
+
+**Interactive webinterface:**
+```python
+./run-app.sh
 ```
 
 **Process data:**
@@ -41,3 +45,4 @@ from engine.postprocessing import process_simulation_data
 
 process_simulation_data("data/exp1/postvis_time.txt", "output/exp1.csv")
 ```
+
