@@ -26,10 +26,9 @@ def test_processed_shape_and_pattern(sim_folder: str, tmp_path: Path) -> None:
     Runs independently for each folder defined in SIMULATION_FOLDERS.
     """
     input_path = DATA_DIR / sim_folder / "postvis_time.txt"
-
     output_path = tmp_path / "postvis_time.csv"
 
-    df = process_simulation_data(input_path, output_path)
+    df, _ = process_simulation_data(input_path, output_path)
 
     # 1. Check basic shape properties
     assert not df.is_empty(), f"DataFrame for {sim_folder} should not be empty"
@@ -60,10 +59,10 @@ def test_matches_expected_output(sim_folder: str, tmp_path: Path) -> None:
 
     assert expected_csv_path.exists(), f"Expected output missing for {sim_folder}"
 
-    result_df = process_simulation_data(input_path, output_path)
+    result_df, _ = process_simulation_data(input_path, output_path)
     expected_df = pl.read_csv(expected_csv_path)
 
-    # Cast to Float64 to ignore String/Float type discrepancies and sort by timeStep
+    # Cast to Float64
     res = result_df.cast(pl.Float64, strict=False).sort("timeStep")
     exp = expected_df.cast(pl.Float64, strict=False).sort("timeStep")
 
