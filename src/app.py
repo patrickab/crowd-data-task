@@ -101,7 +101,7 @@ def render_timeline(df: pl.DataFrame, bounds: dict[str, list[float]]) -> None:
 def main() -> None:
     """Main application flow."""
     DATA_DIR = Path("data")
-    OUTPUT_DIR = Path("expected_output")
+    OUTPUT_DIR = Path("data_processed")
 
     if not DATA_DIR.exists():
         st.sidebar.error(f"Directory `{DATA_DIR}` not found.")
@@ -122,8 +122,17 @@ def main() -> None:
     max_step = int(raw_df[ts_col].max())
 
     st.sidebar.markdown("### Time Range")
-    start_step = st.sidebar.number_input("Start Step", value=min_step, min_value=min_step, max_value=max_step)
-    end_step = st.sidebar.number_input("End Step", value=max_step, min_value=min_step, max_value=max_step)
+
+    with st.sidebar:
+        col_1, col_2 = st.columns(2)
+
+        start_step = col_1.number_input(
+            "Start Step", value=min_step, min_value=min_step, max_value=max_step
+        )
+
+        end_step = col_2.number_input(
+            "End Step", value=max_step, min_value=min_step, max_value=max_step
+        )
 
     if start_step > end_step:
         st.sidebar.error("Start step must be <= end step.")
@@ -133,8 +142,11 @@ def main() -> None:
         with st.spinner("Processing data..."):
             start = start_step if start_step != min_step else None
             end = end_step if end_step != max_step else None
-            df = process_simulation_data(input_file, output_file, start_step=start, end_step=end)
+            df, timers = process_simulation_data(
+                input_file, output_file, start_step=start, end_step=end
+            )
             st.session_state["df"] = df
+            st.session_state["timers"] = timers
             st.session_state["raw_df"] = raw_df
 
             # Precalculate global bounds across all timesteps
@@ -154,6 +166,9 @@ def main() -> None:
 
     # --- MAIN WINDOW ---
     if "df" in st.session_state:
+        st.sidebar.markdown("### Profiling")
+        st.sidebar.json({k: f"{v:.4f}s" for k, v in st.session_state["timers"].items()})
+
         if view_mode == "Timeline":
             render_timeline(st.session_state["df"], st.session_state["bounds"])
         else:
