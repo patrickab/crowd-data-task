@@ -17,7 +17,7 @@ Tool to parse and transform simulation data from `postvis_time.txt` to a wide-fo
 This project is configured via `pyproject.toml`, making it compatible with all standard Python package managers.
 
 ### 1. Setup Environment
-**Using uv (Recommended):**
+**Using uv:**
 ```bash
 uv sync
 ```
@@ -36,7 +36,6 @@ pytest -v
 ```
 
 **Process data:**
-Import and use the processor in your own scripts:
 ```python
 from engine.postprocessing import process_simulation_data
 

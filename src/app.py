@@ -7,7 +7,7 @@ import streamlit as st
 from engine.postprocessing import process_simulation_data
 
 
-def create_animation(df: pl.DataFrame, bounds: dict[str, list[float]]):
+def create_animation(df: pl.DataFrame, bounds: dict[str, list[float]]) -> px.scatter:
     """Creates an animated Plotly scatter chart from all timesteps."""
     records = []
     for row in df.iter_rows(named=True):
@@ -41,13 +41,14 @@ def create_animation(df: pl.DataFrame, bounds: dict[str, list[float]]):
         range_y=bounds["y"],
     )
 
-    fig.update_traces(marker_size=10, marker_color="red", marker_opacity=0.7)
+    fig.update_traces(marker_size=10, marker_color="#1f77b4", marker_opacity=0.7)
     fig.update_layout(
         plot_bgcolor="white",
         xaxis_title="X (m)",
         yaxis_title="Y (m)",
         xaxis_showgrid=False,
         yaxis_showgrid=False,
+        height=600,
     )
 
     return fig
@@ -58,9 +59,7 @@ def render_timeline(df: pl.DataFrame, bounds: dict[str, list[float]]) -> None:
     min_ts = df["timeStep"].min()
     max_ts = df["timeStep"].max()
 
-    current_step = st.number_input(
-        "TimeStep (Timeline)", min_value=min_ts, max_value=max_ts, value=min_ts
-    )
+    current_step = st.slider("TimeStep", min_value=min_ts, max_value=max_ts, value=min_ts)
 
     # Extract row for current timestep
     row_dict = df.filter(pl.col("timeStep") == current_step).to_dicts()[0]
@@ -74,37 +73,29 @@ def render_timeline(df: pl.DataFrame, bounds: dict[str, list[float]]) -> None:
             if y_val is not None:
                 points.append({"Pedestrian": pid, "X": val, "Y": y_val})
 
-    col1, col2 = st.columns(2)
+    if points:
+        plot_df = pl.DataFrame(points)
 
-    with col1:
-        st.subheader("Current Timestep")
-        if points:
-            plot_df = pl.DataFrame(points)
+        fig = px.scatter(
+            plot_df,
+            x="X",
+            y="Y",
+            hover_name="Pedestrian",
+            range_x=bounds["x"],
+            range_y=bounds["y"],
+        )
 
-            fig = px.scatter(
-                plot_df,
-                x="X",
-                y="Y",
-                hover_name="Pedestrian",
-                range_x=bounds["x"],
-                range_y=bounds["y"],
-            )
+        fig.update_traces(marker_size=10, marker_color="#1f77b4", marker_opacity=0.7)
+        fig.update_layout(
+            plot_bgcolor="white",
+            xaxis_title="X (m)",
+            yaxis_title="Y (m)",
+            xaxis_showgrid=False,
+            yaxis_showgrid=False,
+            height=600,
+        )
 
-            fig.update_traces(marker_size=10, marker_color="blue", marker_opacity=0.7)
-            fig.update_layout(
-                plot_bgcolor="white",
-                xaxis_title="X (m)",
-                yaxis_title="Y (m)",
-                xaxis_showgrid=False,
-                yaxis_showgrid=False,
-            )
-
-            st.plotly_chart(fig, width="stretch")
-
-    with col2:
-        st.subheader("Animation")
-        anim_fig = create_animation(df, bounds)
-        st.plotly_chart(anim_fig, width="stretch")
+        st.plotly_chart(fig, width="stretch")
 
 
 def main() -> None:
@@ -119,13 +110,17 @@ def main() -> None:
     folders = [f.name for f in DATA_DIR.iterdir() if f.is_dir()]
     selected_folder = st.sidebar.selectbox("Select Experiment", folders)
 
+    view_mode = st.sidebar.radio("Display Mode", ["Animation", "Timeline"])
+
     if st.sidebar.button("Process Data", type="secondary"):
         input_file = DATA_DIR / selected_folder / "postvis_time.txt"
         output_file = OUTPUT_DIR / selected_folder / "postvis_time.csv"
 
         with st.spinner("Processing data..."):
+            raw_df = pl.read_csv(input_file, separator=" ")
             df = process_simulation_data(input_file, output_file)
             st.session_state["df"] = df
+            st.session_state["raw_df"] = raw_df
 
             # Precalculate global bounds across all timesteps
             x_cols = [c for c in df.columns if c.startswith("x")]
@@ -144,8 +139,20 @@ def main() -> None:
 
     # --- MAIN WINDOW ---
     if "df" in st.session_state:
-        render_timeline(st.session_state["df"], st.session_state["bounds"])
+        if view_mode == "Timeline":
+            render_timeline(st.session_state["df"], st.session_state["bounds"])
+        else:
+            anim_fig = create_animation(st.session_state["df"], st.session_state["bounds"])
+            st.plotly_chart(anim_fig, width="stretch")
+
+        with st.expander("View Data", expanded=False):
+            data_mode = st.radio("Data View", ["Preprocessed", "Raw"], horizontal=True)
+            if data_mode == "Preprocessed":
+                st.dataframe(st.session_state["df"])
+            else:
+                st.dataframe(st.session_state["raw_df"])
 
 
 if __name__ == "__main__":
+    st.set_page_config(layout="wide")
     main()
