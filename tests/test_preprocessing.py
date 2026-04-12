@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import polars as pl
@@ -11,12 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 EXPECTED_OUTPUT_DIR = ROOT_DIR / "expected_output"
 
-SIMULATION_FOLDERS = [
-    "rimea_4_OSM_clone_1_2026-04-09_16-58-14.715",
-    "spiral_OSM_2026-04-09_16-14-54.924",
-    "spiral_OSM_2026-04-09_16-26-44.727",
-    "spiral_OSM_2026-04-09_16-29-16.153",
-]
+SIMULATION_FOLDERS = os.listdir(DATA_DIR)
 
 
 @pytest.mark.parametrize("sim_folder", SIMULATION_FOLDERS)
