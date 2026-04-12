@@ -112,13 +112,28 @@ def main() -> None:
 
     view_mode = st.sidebar.radio("Display Mode", ["Animation", "Timeline"])
 
-    if st.sidebar.button("Process Data", type="secondary"):
-        input_file = DATA_DIR / selected_folder / "postvis_time.txt"
-        output_file = OUTPUT_DIR / selected_folder / "postvis_time.csv"
+    input_file = DATA_DIR / selected_folder / "postvis_time.txt"
+    output_file = OUTPUT_DIR / selected_folder / "postvis_time.csv"
 
+    # Read raw data to get timestep range for filtering
+    raw_df = pl.read_csv(input_file, separator=" ")
+    ts_col = raw_df.columns[0]
+    min_step = int(raw_df[ts_col].min())
+    max_step = int(raw_df[ts_col].max())
+
+    st.sidebar.markdown("### Time Range")
+    start_step = st.sidebar.number_input("Start Step", value=min_step, min_value=min_step, max_value=max_step)
+    end_step = st.sidebar.number_input("End Step", value=max_step, min_value=min_step, max_value=max_step)
+
+    if start_step > end_step:
+        st.sidebar.error("Start step must be <= end step.")
+        st.stop()
+
+    if st.sidebar.button("Process Data", type="secondary"):
         with st.spinner("Processing data..."):
-            raw_df = pl.read_csv(input_file, separator=" ")
-            df = process_simulation_data(input_file, output_file)
+            start = start_step if start_step != min_step else None
+            end = end_step if end_step != max_step else None
+            df = process_simulation_data(input_file, output_file, start_step=start, end_step=end)
             st.session_state["df"] = df
             st.session_state["raw_df"] = raw_df
 

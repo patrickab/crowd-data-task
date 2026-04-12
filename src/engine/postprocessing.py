@@ -3,7 +3,12 @@ from pathlib import Path
 import polars as pl
 
 
-def process_simulation_data(input_path: str | Path, output_path: str | Path) -> pl.DataFrame:
+def process_simulation_data(
+    input_path: str | Path,
+    output_path: str | Path,
+    start_step: int | None = None,
+    end_step: int | None = None,
+) -> pl.DataFrame:
     """
     Parses raw simulation output data.
     Transforms by mapping each timestep to one row and each pedestrianId to a column.
@@ -24,32 +29,38 @@ def process_simulation_data(input_path: str | Path, output_path: str | Path) -> 
         {cols[0]: "timeStep", cols[1]: "pedestrianId", cols[2]: "x", cols[3]: "y"}
     ).select(["timeStep", "pedestrianId", "x", "y"])
 
-    # 3. Get unique pedestrian IDs by order of occurrence
+    # 3. Filter by time range if specified
+    if start_step is not None:
+        df = df.filter(pl.col("timeStep") >= start_step)
+    if end_step is not None:
+        df = df.filter(pl.col("timeStep") <= end_step)
+
+    # 4. Get unique pedestrian IDs by order of occurrence
     pids = df["pedestrianId"].unique(maintain_order=True).to_list()
 
-    # 4. Pivot X and Y separately (transform long data to wide data)
+    # 5. Pivot X and Y separately (transform long data to wide data)
     df_x = df.pivot(index="timeStep", on="pedestrianId", values="x", aggregate_function="first")
     df_x = df_x.rename({col: f"x{col}" for col in df_x.columns if col != "timeStep"})
 
     df_y = df.pivot(index="timeStep", on="pedestrianId", values="y", aggregate_function="first")
     df_y = df_y.rename({col: f"y{col}" for col in df_y.columns if col != "timeStep"})
 
-    # 5. Join them together
+    # 6. Join them together
     pivot_df = df_x.join(df_y, on="timeStep", how="inner").sort("timeStep")
 
-    # 6. Reorder columns to an interleaved pattern (timeStep, x1, y1, x2, y2, ...)
+    # 7. Reorder columns to an interleaved pattern (timeStep, x1, y1, x2, y2, ...)
     ordered_cols = ["timeStep"]
     for pid in pids:
         ordered_cols.extend([f"x{pid}", f"y{pid}"])
 
     pivot_df = pivot_df.select(ordered_cols)
 
-    # 7. Cast to float
+    # 8. Cast to float
     pivot_df = pivot_df.with_columns(
         [pl.col(c).cast(pl.Float64) for c in ordered_cols if c != "timeStep"]
     )
 
-    # 8. Write to CSV
+    # 9. Write to CSV
     output_path.parent.mkdir(parents=True, exist_ok=True)
     pivot_df.write_csv(output_path)
 
